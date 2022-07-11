@@ -1,0 +1,86 @@
+1) quante squadre giocano in ogni leghe? 
+1) db.teams.aggregate([{"$group" : {_id: "$league", n_teams:{$sum:1}}}, {"$sort":{n_teams: -1}}]) OK
+db.teams.explain("executionStats").aggregate([{"$group" : {_id: "$league", n_teams:{$sum:1}}}, {"$sort":{n_teams: -1}}])
+
+2) conteggio ristoranti per league?
+2) db.teams.aggregate([{$group: {_id: "$league", n_resturants: {$sum:"$total"}}}, {$sort:{n_resturants:-1}}, {$limit:10}]) OK
+db.teams.explain("executionStats").aggregate([{$group: {_id: "$league", n_resturants: {$sum:"$total"}}}, {$sort:{n_resturants:-1}}, {$limit:10}])
+
+2.1) conteggio ristoranti per stato?
+2.1) db.teams.aggregate([{$group: {_id: "$state", n_resturants: {$sum:"$total"}}}, {$sort:{n_resturants:-1}}, {$limit:10}]) OK
+db.teams.explain("executionStats").aggregate([{$group: {_id: "$state", n_resturants: {$sum:"$total"}}}, {$sort:{n_resturants:-1}}, {$limit:10}])
+
+2.2) conteggio ristoranti per città?
+2.2) db.teams.aggregate([{$group: {_id: "$city", n_resturants: {$sum:"$total"}}}, {$sort:{n_resturants:-1}}, {$limit:10}]) OK
+db.teams.explain("executionStats").aggregate([{$group: {_id: "$city", n_resturants: {$sum:"$total"}}}, {$sort:{n_resturants:-1}}, {$limit:10}])
+
+3) conto dei ristoranti più costosi per ogni lega?
+3) db.teams.aggregate([{$unwind: "$businesses"}, {$match: {"businesses.price": "$$$$"}},{$group: {_id: "$league", t: {$push: "$businesses.price"}}}, {$project: { n_expResturants: { $size:"$t" }}}, {$sort: {n_expResturants: -1}}]) GIA OK
+db.teams.explain("executionStats").aggregate([{$unwind: "$businesses"}, {$match: {"businesses.price": "$$$$"}},{$group: {_id: "$league", t: {$push: "$businesses.price"}}}, {$project: { n_expResturants: { $size:"$t" }}}, {$sort: {n_expResturants: -1}}]) 
+
+4) conto dei ristoranti meno costosi per ogni lega?
+4) db.teams.aggregate([{$unwind: "$businesses"}, {$match: {"businesses.price": "$"}},{$group: {_id: "$league", t: {$push: "$businesses.price"}}}, {$project: { n_cheapResturants: { $size:"$t" }}}, {$sort: {n_cheapResturants: -1}}]) GIA OK
+db.teams.explain("executionStats").aggregate([{$unwind: "$businesses"}, {$match: {"businesses.price": "$"}},{$group: {_id: "$league", t: {$push: "$businesses.price"}}}, {$project: { n_cheapResturants: { $size:"$t" }}}, {$sort: {n_cheapResturants: -1}}])
+
+5) top 10 città con più squadre, numero squadre, e il numero di ristoranti per ogni stato?
+5) db.teams.aggregate([{$group: {_id: "$city", n_teams: {$sum:1}, n_resturants:{$sum:"$total"}}}, {$sort: {n_teams: -1}}, {$limit : 10}]) GIA Ok
+db.teams.explain("executionStats").aggregate([{$group: {_id: "$city", n_teams: {$sum:1}, n_resturants:{$sum:"$total"}}}, {$sort: {n_teams: -1}}, {$limit : 10}])
+
+6) top 10 stati con più squadre, numero squadre, e il numero di ristoranti per ogni stato?
+6) db.teams.aggregate([{$group: {_id: "$state", n_teams: {$sum:1}, n_resturants:{$sum:"$total"}}}, {$sort: {n_teams: -1}}, {$limit : 10}]) gia OK
+
+
+7) top 10 tipi di ristoranti più numerosi e la loro distanza media dagli stadi?
+7) db.teams.aggregate([{$unwind: "$businesses"}, {$unwind:"$businesses.categories"}, {$group: {_id:"$businesses.categories.title", distance: {$avg:"$businesses.distance"}, rating:{$avg: "$businesses.rating"}}}, {$sort: {distance:1}}, {$limit:10}]) GIA OK
+db.teams.explain("executionStats").aggregate([{$unwind: "$businesses"}, {$unwind:"$businesses.categories"}, {$group: {_id:"$businesses.categories.title", distance: {$avg:"$businesses.distance"}, rating:{$avg: "$businesses.rating"}}}, {$sort: {distance:1}}, {$limit:10}])
+
+8) top 10 tipologie di ristoranti più quotati?
+8) db.teams.aggregate([{$unwind: "$businesses"},{$unwind:"$businesses.categories"},{$group: {_id:"$businesses.categories.title", avg_rating: {$avg:"$businesses.rating"}, sum_review:{$sum: "$businesses.review_count"}}}, {$sort: {sum_review:-1}}, {$limit:10}])
+db.teams.explain("executionStats").aggregate([{$unwind: "$businesses"},{$unwind:"$businesses.categories"},{$group: {_id:"$businesses.categories.title", avg_rating: {$avg:"$businesses.rating"}, sum_review:{$sum: "$businesses.review_count"}}}, {$sort: {sum_review:-1}}, {$limit:10}])
+
+9) Quale stato ha il maggior numero di pub o bar sportivi più vicini ai propri stadi?
+9) db.teams.aggregate([{$match:{"businesses.categories.title":{$in: [/bar/, /pub/]}}},{$group: {_id:"$state", bar_pubs:{$sum:"$total"}}}, {$sort:{bar_pubs:-1}},{$limit:10}]) OK
+db.teams.explain("executionStats").aggregate([{$match:{"businesses.categories.title":{$in: [/bar/, /pub/]}}},{$group: {_id:"$state", bar_pubs:{$sum:"$total"}}}, {$sort:{bar_pubs:-1}},{$limit:10}])
+
+
+11) statistiche ristoranti per stato?
+11) db.teams.aggregate([{$unwind: "$businesses"}, {$group: {_id:"$state", avg_rating: {$avg:"$businesses.rating"}, sum_review:{$sum: "$businesses.review_count"}}}, {$sort: {avg_rating:-1}}, {$limit:10}])
+db.teams.explain("executionStats").aggregate([{$unwind: "$businesses"}, {$group: {_id:"$state", avg_rating: {$avg:"$businesses.rating"}, sum_review:{$sum: "$businesses.review_count"}}}, {$sort: {avg_rating:-1}}, {$limit:10}])
+
+12) Top 10 città che fanno delivery (in transactions)
+12) db.teams.aggregate([{$unwind:"$businesses"},{$match:{"businesses.transactions":"delivery"}}, {$group: {_id:"$city", n_delivery:{$sum:1}, avg_rating:{$avg:"$businesses.rating"}}}, {$sort:{n_delivery:-1}}, {$limit:10}])
+db.teams.explain("executionStats").aggregate([{$unwind:"$businesses"},{$match:{"businesses.transactions":"delivery"}}, {$group: {_id:"$city", n_delivery:{$sum:1}, avg_rating:{$avg:"$businesses.rating"}}}, {$sort:{n_delivery:-1}}, {$limit:10}])
+
+13) Top 10 stati che fanno delivery (in transactions)
+13) db.teams.aggregate([{$unwind:"$businesses"},{$match:{"businesses.transactions":"delivery"}}, {$group: {_id:"$state", n_delivery:{$sum:1}, avg_rating:{$avg:"$businesses.rating"}}}, {$sort:{n_delivery:-1}}, {$limit:10}])
+db.teams.explain("executionStats").aggregate([{$unwind:"$businesses"},{$match:{"businesses.transactions":"delivery"}}, {$group: {_id:"$state", n_delivery:{$sum:1}, avg_rating:{$avg:"$businesses.rating"}}}, {$sort:{n_delivery:-1}}, {$limit:10}])
+
+14) rating per fascia di prezzo? 
+14) db.teams.aggregate([{$unwind: "$businesses"}, {$group: {_id:"$businesses.price", avg_rating: {$avg:"$businesses.rating"}, sum_review:{$sum: "$businesses.review_count"}}}, {$sort: {avg_rating:-1}}, {$limit:10}])
+db.teams.explain("executionStats").aggregate([{$unwind: "$businesses"}, {$group: {_id:"$businesses.price", avg_rating: {$avg:"$businesses.rating"}, sum_review:{$sum: "$businesses.review_count"}}}, {$sort: {avg_rating:-1}}, {$limit:10}])
+
+15) Top 10 tipologie che fanno delivery
+15) db.teams.aggregate([{$unwind:"$businesses"},{$unwind:"$businesses.categories"},{$match:{"businesses.transactions":"delivery"}}, {$group: {_id:"$businesses.categories.title", n_delivery:{$sum:1}}}, {$sort:{n_delivery:-1}}, {$limit:10}])
+db.teams.explain("executionStats").aggregate([{$unwind:"$businesses"},{$unwind:"$businesses.categories"},{$match:{"businesses.transactions":"delivery"}}, {$group: {_id:"$businesses.categories.title", n_delivery:{$sum:1}}}, {$sort:{n_delivery:-1}}, {$limit:10}])
+
+16) Top 10 tipologie più costose Contare n° $$$$ per tipologia di ristorante/cibo
+16) db.teams.aggregate([{$unwind:"$businesses"},{$unwind:"$businesses.categories"},{$match:{"businesses.price":"$$$$"}}, {$group: {_id:"$businesses.categories.title", n_expensive:{$sum:1}}}, {$sort:{n_expensive:-1}}, {$limit:10}])
+db.teams.explain("executionStats").aggregate([{$unwind:"$businesses"},{$unwind:"$businesses.categories"},{$match:{"businesses.price":"$$$$"}}, {$group: {_id:"$businesses.categories.title", n_expensive:{$sum:1}}}, {$sort:{n_expensive:-1}}, {$limit:10}])
+
+17) Top 10 tipologie meno costose Contare n° $ per tipologia di ristorante/cibo
+17) db.teams.aggregate([{$unwind:"$businesses"},{$unwind:"$businesses.categories"},{$match:{"businesses.price":"$"}}, {$group: {_id:"$businesses.categories.title", n_cheap:{$sum:1}}}, {$sort:{n_cheap:-1}}, {$limit:10}])
+db.teams.explain("executionStats").aggregate([{$unwind:"$businesses"},{$unwind:"$businesses.categories"},{$match:{"businesses.price":"$"}}, {$group: {_id:"$businesses.categories.title", n_cheap:{$sum:1}}}, {$sort:{n_cheap:-1}}, {$limit:10}])
+
+
+18) Top 10 città con ristoranti più costosi 
+18) db.teams.aggregate([{$unwind: "$businesses"}, {$match: {"businesses.price": "$$$$"}},{$group: {_id: "$city", t: {$push: "$businesses.price"}}}, {$project: { n_expResturants: { $size:"$t" }}}, {$sort: {n_expResturants: -1}},{$limit:10}])
+db.teams.explain("executionStats").aggregate([{$unwind: "$businesses"}, {$match: {"businesses.price": "$$$$"}},{$group: {_id: "$city", t: {$push: "$businesses.price"}}}, {$project: { n_expResturants: { $size:"$t" }}}, {$sort: {n_expResturants: -1}},{$limit:10}])
+
+
+19) Top 10 città con ristoranti meno costosi
+19) db.teams.aggregate([{$unwind: "$businesses"}, {$match: {"businesses.price": "$"}},{$group: {_id: "$city", t: {$push: "$businesses.price"}}}, {$project: { n_cheapResturants: { $size:"$t" }}}, {$sort: {n_cheapResturants: -1}},{$limit:10}])
+db.teams.explain("executionStats").aggregate([{$unwind: "$businesses"}, {$match: {"businesses.price": "$"}},{$group: {_id: "$city", t: {$push: "$businesses.price"}}}, {$project: { n_cheapResturants: { $size:"$t" }}}, {$sort: {n_cheapResturants: -1}},{$limit:10}])
+
+20) createIndex({league:1}) e vedere cosa cambia?
+20) db.teams.find({"league":"MLS", "businesses.distance": {$lte:1000}, "businesses.distance":{$gte:10}, "businesses.price":"$"}, {"businesses.name":1, "businesses.distance":1, "businesses.rating":1, "_id":0}).pretty()
+
