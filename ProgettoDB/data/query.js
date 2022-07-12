@@ -6,7 +6,8 @@ function get_results(result) {
 db.setProfilingLevel(2)
 
 //create index league
-db.teams.createIndex({league:1})
+//db.teams.createIndex({league:1})
+
 
 print("---------------LIST OF QUERIES------------");
 
@@ -282,4 +283,8 @@ db.teams.find({"league":"MLS", "businesses.distance": {$lte:1000}, "businesses.d
 printjson(db.teams.explain("executionStats").find({"league":"MLS", "businesses.distance": {$lte:1000}, "businesses.distance":{$gte:10}, "businesses.price":"$"}, 
                {"businesses.name":1, "businesses.distance":1, "businesses.rating":1, "_id":0}))
 
+
+print("-----------------------------------------------------")
+print("Aggiornamento dei locali chiusi")
+db.teams.updateMany({"businesses.is_closed":{$eq:true}},{$set: {"businesses.$.location.address3":"New Opening Soon"}}).forEach(get_results);
 

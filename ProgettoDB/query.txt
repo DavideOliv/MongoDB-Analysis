@@ -84,3 +84,13 @@ db.teams.explain("executionStats").aggregate([{$unwind: "$businesses"}, {$match:
 20) createIndex({league:1}) e vedere cosa cambia?
 20) db.teams.find({"league":"MLS", "businesses.distance": {$lte:1000}, "businesses.distance":{$gte:10}, "businesses.price":"$"}, {"businesses.name":1, "businesses.distance":1, "businesses.rating":1, "_id":0}).pretty()
 
+21) Update locali chiusi?
+21) db.teams.update({"businesses.is_closed":{$eq:true}},{$set: {"businesses.$.location.address3":"NewOpeningSoon"}})
+
+
+
+QUERY SULLE CARATTERISTICHE DI ESECUZIONE?
+
+1) db.system.profile.find({"planSummary":{$eq:"COLLSCAN"}},{"query":NumberInt(1), "millis": NumberInt(1)}).sort({millis:-1})
+
+2) db.system.profile.find({"millis": {$gt:20}}).sort({millis:-1}).pretty()
